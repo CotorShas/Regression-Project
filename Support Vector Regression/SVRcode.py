@@ -51,17 +51,20 @@ XTrainScaled = scalerX.fit_transform(XTrain)
 XTestScaled = scalerX.transform(XTest)
 YTrainScaled = scalerY.fit_transform(YTrain.values.reshape(-1, 1)).ravel()
 
-
-model = SVR(kernel='rbf', C=100, epsilon=0.1) #choosing/making the model
+#print("test0")
+model = SVR(kernel='rbf', C=100, epsilon=0.1) #choosing/making the model   (methods linear, poly, rbf, sigmoid)
 model.fit(XTrainScaled, YTrainScaled)
 
-
+#print("test1")
 predictionsScaled = model.predict(XTestScaled)
+#print("test2")
 predictions = scalerY.inverse_transform(predictionsScaled.reshape(-1, 1)).ravel()
+#print("test3")
 
 mse = mean_squared_error(YTest, predictions)
+#print("test4")
 r2 = r2_score(YTest, predictions)
-
+#print("test5")
 
 print(f"Mean Squared Error: {mse}")
 print(f"R^2 Score: {r2}")
