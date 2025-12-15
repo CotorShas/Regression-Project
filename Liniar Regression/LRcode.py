@@ -18,17 +18,29 @@ carDataSample = carData.sample(n=10000, random_state=randomtestnumber)  #cutting
 
 #print(carDataSample.head()) another test
 
-sampleDataRandomized = carDataSample.sample(frac=1, random_state=randomtestnumber).reset_index(drop=True)  #randomizing the selected samples, restting index to ordered list from 0 to 9999
 
 #print(sampleDataRandomized.head())
 
+#finding and removing outliers
+average = carData['price'].mean()
+standardDeviation = carData['price'].std()
+
+upper = average + 2 * standardDeviation
+lower = average - 2 * standardDeviation
+
+cleanedSample = carDataSample[
+    (carDataSample['price'] >= lower) &
+    (carDataSample['price'] <= upper)
+]
+
+sampleDataRandomized = cleanedSample.sample(frac=1, random_state=randomtestnumber).reset_index(drop=True)  #randomizing the selected samples, restting index to ordered list from 0 to 9999
 
 x = sampleDataRandomized.iloc[:,0:19] #features, our x variable(s)
 y = sampleDataRandomized.iloc[:,19]   #price, our y variable
 
 
 #x = sampleDataRandomized.drop(columns=['column'])  #allowing us to drop partiuclar columns for testing purposes
-#x = sampleDataRandomized.drop(columns=['make','model', 'exterior_color', 'interior_color', 'trim'])  #dropping catagorical columns to see how it effects the linear regression
+#x = sampleDataRandomized.drop(columns=['make','model', 'exterior_color', 'interior_color'])  #dropping nominal columns to see how it effects the linear regression
 
 #print(x.head())
 #print(y.head())
@@ -38,34 +50,47 @@ y = sampleDataRandomized.iloc[:,19]   #price, our y variable
 #print(x['accident_history'].unique())
 
 #replacing natually ordered catagorical data with nummerical values
-x['condition'] = x['condition'].map({'Fair': 1, 'Good': 2, 'Excellent': 3})
-x['accident_history'] = x['accident_history'].map({'None': 1, 'Minor': 2, 'Major': 3})
-x['trim'] = x['trim'].map({'Base': 1, 'LX': 2, 'Sport': 3, 'EX': 4, 'Touring': 5, 'Limited': 6})
+#x['condition'] = x['condition'].map({'Fair': 1, 'Good': 2, 'Excellent': 3})
+#x['accident_history'] = x['accident_history'].map({'None': 3, 'Minor': 2, 'Major': 1})
+#x['trim'] = x['trim'].map({'Base': 1, 'LX': 2, 'Sport': 3, 'EX': 4, 'Touring': 5, 'Limited': 6})
 
 
 #removing nominal data for testing
-x.drop(columns=['make', 'model', 'transmission', 'fuel_type', 'exterior_color', 'interior_color', 'seller_type'], inplace=True)
+#x.drop(columns=['make', 'model', 'transmission', 'fuel_type', 'exterior_color', 'interior_color', 'seller_type'], inplace=True)
 
 
 #we now need to convert catagorical data to nummerical (e.g car brand to generric number)
 xNumbers = pd.get_dummies(x, drop_first=True)  
 
-XTrain, XTest, YTrain, YTest = train_test_split(xNumbers, y, test_size=0.2, random_state=randomtestnumber)  #splitting data into 80/20 training testing
 
+
+
+XTrain, XTestStorage, YTrain, YTestStorage = train_test_split(xNumbers, y, test_size=0.3, random_state=randomtestnumber)  #splitting data into 70/30 training testing
+XVal, XTest, YVal, YTest = train_test_split(XTestStorage, YTestStorage, test_size=0.5, random_state=randomtestnumber) #splitting trainingstorage into 50/50 (thus 15/15) test validation
 
 #create anf fit the model
 model = LinearRegression()  
 model.fit(XTrain, YTrain)  
 
 
-
-predictions = model.predict(XTest)  
+#validation test
+predictions = model.predict(XVal)  
 
 #test using MSE
-mse = mean_squared_error(YTest, predictions)
-r2 = r2_score(YTest, predictions)
-print("test1")
+mse = mean_squared_error(YVal, predictions)
+r2 = r2_score(YVal, predictions)
+print("validation")
 print(f"Mean Squared Error: {mse}")
 print(f"R^2 Score: {r2}")
 
 
+
+#final teest
+testPredictions = model.predict(XTest)  
+
+#test using MSE
+mseTest = mean_squared_error(YTest, testPredictions)
+r2Test = r2_score(YTest, testPredictions)
+print("test")
+print(f"Mean Squared Error: {mseTest}")
+print(f"R^2 Score: {r2Test}")

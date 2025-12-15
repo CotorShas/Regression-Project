@@ -20,7 +20,19 @@ carDataSample = carData.sample(n=10000, random_state=randomtestnumber)  #cutting
 
 #print(carDataSample.head()) another test
 
-sampleDataRandomized = carDataSample.sample(frac=1, random_state=randomtestnumber).reset_index(drop=True)  #randomizing the selected samples, restting index to ordered list from 0 to 9999
+#finding and removing outliers
+average = carData['price'].mean()
+standardDeviation = carData['price'].std()
+
+upper = average + 2 * standardDeviation
+lower = average - 2 * standardDeviation
+
+cleanedSample = carDataSample[
+    (carDataSample['price'] >= lower) &
+    (carDataSample['price'] <= upper)
+]
+
+sampleDataRandomized = cleanedSample.sample(frac=1, random_state=randomtestnumber).reset_index(drop=True)  #randomizing the selected samples, restting index to ordered list from 0 to 9999
 
 #print(sampleDataRandomized.head())
 
@@ -33,14 +45,15 @@ y = sampleDataRandomized.iloc[:,19]   #price, our y variable
 
 
 #replacing natually ordered catagorical data with nummerical values
-x['condition'] = x['condition'].map({'Fair': 1, 'Good': 2, 'Excellent': 3})
-x['accident_history'] = x['accident_history'].map({'None': 1, 'Minor': 2, 'Major': 3})
-x['trim'] = x['trim'].map({'Base': 1, 'LX': 2, 'Sport': 3, 'EX': 4, 'Touring': 5, 'Limited': 6})
+#x['condition'] = x['condition'].map({'Fair': 1, 'Good': 2, 'Excellent': 3})
+#x['accident_history'] = x['accident_history'].map({'None': 3, 'Minor': 2, 'Major': 1})
+#x['trim'] = x['trim'].map({'Base': 1, 'LX': 2, 'Sport': 3, 'EX': 4, 'Touring': 5, 'Limited': 6})
 
 #we now need to convert catagorical data to nummerical (e.g car brand to generric number)
 xNumbers = pd.get_dummies(x, drop_first=True)  
 
-XTrain, XTest, YTrain, YTest = train_test_split(xNumbers, y, test_size=0.2, random_state=randomtestnumber)  #splitting data into 80/20 training testing
+XTrain, XTestStorage, YTrain, YTestStorage = train_test_split(xNumbers, y, test_size=0.3, random_state=randomtestnumber)  #splitting data into 70/30 training testing
+XVal, XTest, YVal, YTest = train_test_split(XTestStorage, YTestStorage, test_size=0.5, random_state=randomtestnumber) #splitting trainingstorage into 50/50 (thus 15/15) test validation
 
 
 scalerX = StandardScaler()
@@ -48,25 +61,44 @@ scalerY = StandardScaler()
 
 
 XTrainScaled = scalerX.fit_transform(XTrain)
+XValScaled = scalerX.transform(XVal)
 XTestScaled = scalerX.transform(XTest)
 YTrainScaled = scalerY.fit_transform(YTrain.values.reshape(-1, 1)).ravel()
 
 #print("test0")
-model = SVR(kernel='rbf', C=100, epsilon=0.1) #choosing/making the model   (methods linear, poly, rbf, sigmoid)
+model = SVR(kernel='poly', C=100, epsilon=0.1) #choosing/making the model   (methods linear, poly, rbf, sigmoid)
 model.fit(XTrainScaled, YTrainScaled)
 
 #print("test1")
-predictionsScaled = model.predict(XTestScaled)
+predictionsScaled = model.predict(XValScaled)
 #print("test2")
 predictions = scalerY.inverse_transform(predictionsScaled.reshape(-1, 1)).ravel()
 #print("test3")
 
-mse = mean_squared_error(YTest, predictions)
+mse = mean_squared_error(YVal, predictions)
 #print("test4")
-r2 = r2_score(YTest, predictions)
+r2 = r2_score(YVal, predictions)
 #print("test5")
-
+print("validation")
 print(f"Mean Squared Error: {mse}")
 print(f"R^2 Score: {r2}")
+
+
+
+
+predictionsScaledTest = model.predict(XTestScaled)
+predictionsTest = scalerY.inverse_transform(predictionsScaledTest.reshape(-1, 1)).ravel()
+
+
+mseTest = mean_squared_error(YTest, predictionsTest)
+
+r2Test = r2_score(YTest, predictionsTest)
+
+print("test")
+print(f"Mean Squared Error: {mseTest}")
+print(f"R^2 Score: {r2Test}")
+
+
+
 
 
